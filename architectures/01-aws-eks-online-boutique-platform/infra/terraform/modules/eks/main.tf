@@ -290,8 +290,8 @@ resource "aws_eks_node_group" "workers_autoscaler" {
   }
 
   tags = {
-    Name                                                    = "${var.project_name}-${var.cluster_name}-workers-autoscaler"
-    "k8s.io/cluster-autoscaler/enabled"                     = "true"
+    Name                                                     = "${var.project_name}-${var.cluster_name}-workers-autoscaler"
+    "k8s.io/cluster-autoscaler/enabled"                      = "true"
     "k8s.io/cluster-autoscaler/${aws_eks_cluster.this.name}" = "owned"
   }
 

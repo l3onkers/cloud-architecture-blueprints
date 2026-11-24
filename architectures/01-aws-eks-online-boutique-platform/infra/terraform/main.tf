@@ -23,11 +23,11 @@ module "bastion" {
 module "eks" {
   source = "./modules/eks"
 
-  project_name             = var.project_name
-  cluster_name             = var.cluster_name
-  cluster_version          = var.cluster_version
-  vpc_id                   = module.vpc.vpc_id
-  private_subnet_ids       = module.vpc.private_subnet_ids
+  project_name              = var.project_name
+  cluster_name              = var.cluster_name
+  cluster_version           = var.cluster_version
+  vpc_id                    = module.vpc.vpc_id
+  private_subnet_ids        = module.vpc.private_subnet_ids
   bastion_security_group_id = module.bastion.security_group_id
 }
 
@@ -44,9 +44,9 @@ module "iam" {
 module "elasticache" {
   source = "./modules/elasticache"
 
-  project_name             = var.project_name
-  vpc_id                   = module.vpc.vpc_id
-  private_subnet_ids       = module.vpc.private_subnet_ids
+  project_name               = var.project_name
+  vpc_id                     = module.vpc.vpc_id
+  private_subnet_ids         = module.vpc.private_subnet_ids
   eks_node_security_group_id = module.eks.node_security_group_id
 }
 
