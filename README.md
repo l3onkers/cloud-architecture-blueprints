@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="architectures/01-aws-eks-online-boutique-platform/docs/assets/online-boutique-architecture.jpg" alt="Cloud Architecture Blueprints — Flagship AWS EKS 1.34 Online Boutique Platform" width="100%">
+  <img src="docs/assets/gaia-banner.png" alt="Cloud Architecture Blueprints — Powered by G.A.I.A." width="100%">
 </p>
 
 <h1 align="center">🏛️ Cloud Architecture Blueprints</h1>
@@ -48,27 +48,12 @@ Most architecture repositories stop at static diagrams or isolated code snippets
 Every system in this portfolio is engineered and audited across six deterministic layers:
 
 ```mermaid
-flowchart TD
-    subgraph L1["Layer 1 — Cloud Foundation & IaC (DEMETER)"]
-        TF["Terraform Multi-AZ VPC/VNet · Private EKS/AKS · Hybrid IAM (IRSA + Pod Identity) · Encrypted Redis/DB · Route 53 & ACM"]
-    end
-    subgraph L2["Layer 2 — Perimeter Routing & Cluster Add-ons (AETHER)"]
-        GW["Kubernetes Gateway API (app-alb-gateway & platform-alb-gateway HTTPS 443) · ExternalDNS · AWS LB Controller · Cluster Autoscaler · EBS CSI gp3"]
-    end
-    subgraph L3["Layer 3 — Polyglot Microservices & Stateful Stores (ELEUTHIA + POSEIDON)"]
-        APP["11 Microservices (.NET 8, Python FastAPI, React) · HPA v2 Autoscaling · ElastiCache Redis Cart · Non-Root Containers"]
-    end
-    subgraph L4["Layer 4 — Three-Pillar Observability Stack (APOLLO)"]
-        OBS["Monitoring (Prometheus, Grafana, Alertmanager -> Slack) · Logging (ECK Filebeat, Elasticsearch, Kibana) · Tracing (Jaeger OTLP gRPC :4317)"]
-    end
-    subgraph L5["Layer 5 — CI Matrix & Pull-Based GitOps (HEPHAESTUS)"]
-        CICD["GitHub Actions detect-changes -> Build -> Aqua Trivy Gate -> GHCR -> Argo CD + Argo CD Image Updater"]
-    end
-    subgraph L6["Layer 6 — QA, Chaos Engineering & Zero Trust Audit (ARTEMIS + HADES + MINERVA)"]
-        QA["k6 Load Benchmarks · Playwright E2E · Chaos Mesh Fault Injection · MINERVA Zero Trust Security Certification & ADRs"]
-    end
-
-    L1 --> L2 --> L3 --> L4 --> L5 --> L6
+flowchart LR
+    L1["1. Cloud IaC<br/>(DEMETER)<br/>Terraform · VPC · EKS"] --> L2["2. Perimeter & Mesh<br/>(AETHER)<br/>Gateway API · ALB · DNS"]
+    L2 --> L3["3. Microservices<br/>(ELEUTHIA / POSEIDON)<br/>.NET 8 · FastAPI · React"]
+    L3 --> L4["4. Observability<br/>(APOLLO)<br/>Prometheus · ECK · Jaeger"]
+    L4 --> L5["5. CI/CD & GitOps<br/>(HEPHAESTUS)<br/>Trivy · GHCR · Argo CD"]
+    L5 --> L6["6. QA, Chaos & Audit<br/>(ARTEMIS / HADES / MINERVA)<br/>k6 · Chaos Mesh · Zero Trust"]
 ```
 
 ---
@@ -76,6 +61,12 @@ flowchart TD
 ## 🏛️ Featured Architecture Catalog
 
 ### 1. [Blueprint 01 — AWS EKS 1.34 Online Boutique Platform](./architectures/01-aws-eks-online-boutique-platform/README.md) *(Flagship Full-Stack System)*
+
+<p align="center">
+  <a href="./architectures/01-aws-eks-online-boutique-platform/README.md">
+    <img src="architectures/01-aws-eks-online-boutique-platform/docs/assets/online-boutique-architecture.jpg" alt="AWS EKS 1.34 Online Boutique Platform Topology" width="860">
+  </a>
+</p>
 
 A complete cloud-native e-commerce platform deployed in AWS (`us-east-1`) across 3 Availability Zones:
 
