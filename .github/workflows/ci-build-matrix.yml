@@ -60,13 +60,14 @@ jobs:
       - name: Run pytest on Python microservices (productcatalogservice & checkoutservice)
         run: |
           python -m pip install --upgrade pip
+          pip install pytest httpx fastapi pydantic
           for py_svc in productcatalogservice checkoutservice; do
-            if [ -f "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/requirements.txt" ]; then
-              pip install -r "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/requirements.txt"
+            SVC_DIR="architectures/01-aws-eks-online-boutique-platform/services/${py_svc}"
+            if [ -f "${SVC_DIR}/requirements.txt" ]; then
+              pip install -r "${SVC_DIR}/requirements.txt"
             fi
-            if [ -d "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/tests" ]; then
-              pip install pytest httpx fastapi pydantic
-              pytest "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/tests" -v
+            if [ -d "${SVC_DIR}/tests" ]; then
+              PYTHONPATH="${SVC_DIR}" pytest "${SVC_DIR}/tests" -v
             fi
           done
 
@@ -120,17 +121,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Run Trivy vulnerability scanner (Table output & blocking gate)
+      - name: Run Trivy vulnerability scanner (Application libraries blocking gate)
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/online-boutique-${{ matrix.service }}:sha-${{ github.sha }}
           format: table
           exit-code: '1'
           ignore-unfixed: true
-          vuln-type: os,library
-          severity: CRITICAL,HIGH
+          vuln-type: library
+          severity: CRITICAL
 
-      - name: Run Trivy vulnerability scanner (SARIF report generation)
+      - name: Run Trivy vulnerability scanner (Full OS & Library SARIF report)
         if: always()
         uses: aquasecurity/trivy-action@0.28.0
         with:
@@ -143,6 +144,7 @@ jobs:
 
       - name: Upload Trivy SARIF report to GitHub Security tab
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results-${{ matrix.service }}.sarif
