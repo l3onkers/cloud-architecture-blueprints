@@ -59,7 +59,7 @@ jobs:
           soft_fail: false
 
       - name: Run Trivy Config Misconfiguration Scan on architectures/01-aws-eks-online-boutique-platform/infra/terraform/ and architectures/01-aws-eks-online-boutique-platform/k8s/
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           scan-type: config
           scan-ref: .
