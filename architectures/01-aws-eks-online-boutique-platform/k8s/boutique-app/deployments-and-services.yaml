@@ -1,0 +1,870 @@
+# ==============================================================================
+# Online Boutique 11 Microservices — Deployments & Services (boutique-app)
+# ==============================================================================
+# 1. frontend (80 -> 8080)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: boutique-app
+  labels:
+    app: frontend
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: ghcr.io/gaia-platform/online-boutique/frontend:1.0.0
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: "frontend"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "productcatalogservice:3550"
+            - name: CURRENCY_SERVICE_ADDR
+              value: "currencyservice:7000"
+            - name: CART_SERVICE_ADDR
+              value: "cartservice:7070"
+            - name: RECOMMENDATION_SERVICE_ADDR
+              value: "recommendationservice:8080"
+            - name: SHIPPING_SERVICE_ADDR
+              value: "shippingservice:50051"
+            - name: CHECKOUT_SERVICE_ADDR
+              value: "checkoutservice:5050"
+            - name: AD_SERVICE_ADDR
+              value: "adservice:9555"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: boutique-app
+  labels:
+    app: frontend
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+# 2. cartservice (7070 -> ElastiCache Redis via REDIS_ADDR)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartservice
+  namespace: boutique-app
+  labels:
+    app: cartservice
+    app.kubernetes.io/name: cartservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cartservice
+  template:
+    metadata:
+      labels:
+        app: cartservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: ghcr.io/gaia-platform/online-boutique/cartservice:1.0.0
+          ports:
+            - containerPort: 7070
+              name: http
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "7070"
+            - name: ASPNETCORE_URLS
+              value: "http://+:7070"
+            - name: OTEL_SERVICE_NAME
+              value: "cartservice"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 7070
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 7070
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 150m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartservice
+  namespace: boutique-app
+  labels:
+    app: cartservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: cartservice
+  ports:
+    - name: http
+      port: 7070
+      targetPort: 7070
+---
+# 3. productcatalogservice (3550)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productcatalogservice
+  namespace: boutique-app
+  labels:
+    app: productcatalogservice
+    app.kubernetes.io/name: productcatalogservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: productcatalogservice
+  template:
+    metadata:
+      labels:
+        app: productcatalogservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: ghcr.io/gaia-platform/online-boutique/productcatalogservice:1.0.0
+          ports:
+            - containerPort: 3550
+              name: http
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "3550"
+            - name: OTEL_SERVICE_NAME
+              value: "productcatalogservice"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3550
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3550
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: productcatalogservice
+  namespace: boutique-app
+  labels:
+    app: productcatalogservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: productcatalogservice
+  ports:
+    - name: http
+      port: 3550
+      targetPort: 3550
+---
+# 4. currencyservice (7000)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currencyservice
+  namespace: boutique-app
+  labels:
+    app: currencyservice
+    app.kubernetes.io/name: currencyservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: currencyservice
+  template:
+    metadata:
+      labels:
+        app: currencyservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/currencyservice:v0.10.1
+          ports:
+            - containerPort: 7000
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "7000"
+            - name: OTEL_SERVICE_NAME
+              value: "currencyservice"
+          readinessProbe:
+            tcpSocket:
+              port: 7000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 7000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: currencyservice
+  namespace: boutique-app
+  labels:
+    app: currencyservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: currencyservice
+  ports:
+    - name: grpc
+      port: 7000
+      targetPort: 7000
+---
+# 5. paymentservice (50051)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paymentservice
+  namespace: boutique-app
+  labels:
+    app: paymentservice
+    app.kubernetes.io/name: paymentservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: paymentservice
+  template:
+    metadata:
+      labels:
+        app: paymentservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/paymentservice:v0.10.1
+          ports:
+            - containerPort: 50051
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "50051"
+            - name: OTEL_SERVICE_NAME
+              value: "paymentservice"
+          readinessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paymentservice
+  namespace: boutique-app
+  labels:
+    app: paymentservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: paymentservice
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+---
+# 6. shippingservice (50051)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shippingservice
+  namespace: boutique-app
+  labels:
+    app: shippingservice
+    app.kubernetes.io/name: shippingservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shippingservice
+  template:
+    metadata:
+      labels:
+        app: shippingservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/shippingservice:v0.10.1
+          ports:
+            - containerPort: 50051
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "50051"
+            - name: OTEL_SERVICE_NAME
+              value: "shippingservice"
+          readinessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shippingservice
+  namespace: boutique-app
+  labels:
+    app: shippingservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: shippingservice
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+---
+# 7. emailservice (8080)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emailservice
+  namespace: boutique-app
+  labels:
+    app: emailservice
+    app.kubernetes.io/name: emailservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: emailservice
+  template:
+    metadata:
+      labels:
+        app: emailservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/emailservice:v0.10.1
+          ports:
+            - containerPort: 8080
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: "emailservice"
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emailservice
+  namespace: boutique-app
+  labels:
+    app: emailservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: emailservice
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+---
+# 8. checkoutservice (5050)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkoutservice
+  namespace: boutique-app
+  labels:
+    app: checkoutservice
+    app.kubernetes.io/name: checkoutservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: checkoutservice
+  template:
+    metadata:
+      labels:
+        app: checkoutservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: ghcr.io/gaia-platform/online-boutique/checkoutservice:1.0.0
+          ports:
+            - containerPort: 5050
+              name: http
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "5050"
+            - name: OTEL_SERVICE_NAME
+              value: "checkoutservice"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "http://productcatalogservice:3550"
+            - name: CART_SERVICE_ADDR
+              value: "http://cartservice:7070"
+            - name: SHIPPING_SERVICE_ADDR
+              value: "shippingservice:50051"
+            - name: EMAIL_SERVICE_ADDR
+              value: "emailservice:8080"
+            - name: PAYMENT_SERVICE_ADDR
+              value: "paymentservice:50051"
+            - name: CURRENCY_SERVICE_ADDR
+              value: "currencyservice:7000"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5050
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5050
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkoutservice
+  namespace: boutique-app
+  labels:
+    app: checkoutservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: checkoutservice
+  ports:
+    - name: http
+      port: 5050
+      targetPort: 5050
+---
+# 9. recommendationservice (8080)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendationservice
+  namespace: boutique-app
+  labels:
+    app: recommendationservice
+    app.kubernetes.io/name: recommendationservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: recommendationservice
+  template:
+    metadata:
+      labels:
+        app: recommendationservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/recommendationservice:v0.10.1
+          ports:
+            - containerPort: 8080
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: "recommendationservice"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "productcatalogservice:3550"
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendationservice
+  namespace: boutique-app
+  labels:
+    app: recommendationservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: recommendationservice
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+---
+# 10. adservice (9555)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adservice
+  namespace: boutique-app
+  labels:
+    app: adservice
+    app.kubernetes.io/name: adservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: adservice
+  template:
+    metadata:
+      labels:
+        app: adservice
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/adservice:v0.10.1
+          ports:
+            - containerPort: 9555
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: PORT
+              value: "9555"
+            - name: OTEL_SERVICE_NAME
+              value: "adservice"
+          readinessProbe:
+            tcpSocket:
+              port: 9555
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: 9555
+            initialDelaySeconds: 20
+            periodSeconds: 25
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 200m
+              memory: 180Mi
+            limits:
+              cpu: 350m
+              memory: 350Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adservice
+  namespace: boutique-app
+  labels:
+    app: adservice
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  selector:
+    app: adservice
+  ports:
+    - name: grpc
+      port: 9555
+      targetPort: 9555
+---
+# 11. loadgenerator (replicas: 1, targeting http://frontend:80)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgenerator
+  namespace: boutique-app
+  labels:
+    app: loadgenerator
+    app.kubernetes.io/name: loadgenerator
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loadgenerator
+  template:
+    metadata:
+      labels:
+        app: loadgenerator
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: main
+          image: gcr.io/google-samples/microservices-demo/loadgenerator:v0.10.1
+          envFrom:
+            - configMapRef:
+                name: boutique-otel-redis-config
+          env:
+            - name: FRONTEND_ADDR
+              value: "frontend:80"
+            - name: USERS
+              value: "10"
+            - name: OTEL_SERVICE_NAME
+              value: "loadgenerator"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

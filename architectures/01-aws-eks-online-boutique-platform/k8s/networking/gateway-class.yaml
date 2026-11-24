@@ -1,0 +1,10 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-alb-gateway-class
+  labels:
+    app.kubernetes.io/name: aws-alb-gateway-class
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  controllerName: ingress.k8s.aws/alb
+  description: "AWS Load Balancer Controller GatewayClass for Application Load Balancers"

@@ -1,0 +1,71 @@
+# ==============================================================================
+# Redis Cart (In-Cluster Disabled — Production uses AWS ElastiCache Redis)
+# ==============================================================================
+# Maintained at replicas: 0 in production (`redis-cart (off)`) as cartservice
+# connects directly to AWS ElastiCache Redis via REDIS_ADDR in ConfigMap.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-cart
+  namespace: boutique-app
+  labels:
+    app: redis-cart
+    app.kubernetes.io/name: redis-cart
+    app.kubernetes.io/part-of: online-boutique
+  annotations:
+    gaia.platform/status: "disabled-in-prod-using-aws-elasticache"
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: redis-cart
+  template:
+    metadata:
+      labels:
+        app: redis-cart
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+              name: redis
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 125m
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /data
+              name: redis-data
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cart
+  namespace: boutique-app
+  labels:
+    app: redis-cart
+    app.kubernetes.io/part-of: online-boutique
+spec:
+  type: ClusterIP
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: 6379
+  selector:
+    app: redis-cart

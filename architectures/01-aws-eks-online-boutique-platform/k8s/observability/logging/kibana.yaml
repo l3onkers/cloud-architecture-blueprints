@@ -1,0 +1,56 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: boutique-kibana
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: boutique-kibana
+    app.kubernetes.io/part-of: online-boutique-observability
+spec:
+  version: 8.15.0
+  count: 1
+  elasticsearchRef:
+    name: boutique-es
+  http:
+    service:
+      spec:
+        type: ClusterIP
+        ports:
+          - name: https
+            port: 5601
+            targetPort: 5601
+            protocol: TCP
+  podTemplate:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: kibana
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: boutique-kibana
+    app.kubernetes.io/part-of: online-boutique-observability
+spec:
+  type: ClusterIP
+  selector:
+    common.k8s.elastic.co/type: kibana
+    kibana.k8s.elastic.co/name: boutique-kibana
+  ports:
+    - name: https
+      port: 5601
+      targetPort: 5601
+      protocol: TCP

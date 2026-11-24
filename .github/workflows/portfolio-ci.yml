@@ -1,0 +1,29 @@
+name: Cloud Architecture Blueprints — Portfolio CI & Trivy Gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+jobs:
+  validate-portfolio-catalog:
+    name: Validate All Architecture Blueprints & Live E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: List Blueprint Catalog
+        run: python3 scripts/portfolio-cli.py list
+
+      - name: Run 6-Layer Validation Battery across Catalog
+        run: python3 scripts/portfolio-cli.py validate
+
+      - name: Run Live Gateway & Microservice E2E Test (Blueprint 01)
+        run: python3 scripts/portfolio-cli.py test-e2e 01-aws-eks-online-boutique-platform

@@ -1,0 +1,79 @@
+name: Infrastructure & GitOps Validation — Terraform & Trivy Config
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'architectures/01-aws-eks-online-boutique-platform/infra/terraform/**'
+      - 'architectures/01-aws-eks-online-boutique-platform/k8s/**'
+      - '.github/workflows/terraform-validate.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'architectures/01-aws-eks-online-boutique-platform/infra/terraform/**'
+      - 'architectures/01-aws-eks-online-boutique-platform/k8s/**'
+      - '.github/workflows/terraform-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  terraform-validate:
+    name: Validate Layer 1 AWS Terraform
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: architectures/01-aws-eks-online-boutique-platform/infra/terraform
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.7.5'
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init (Backend Disabled)
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+  iac-security-scan:
+    name: Trivy & tfsec IaC Security Scan
+    needs: terraform-validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run tfsec static analysis on Terraform
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: architectures/01-aws-eks-online-boutique-platform/infra/terraform
+          soft_fail: false
+
+      - name: Run Trivy Config Misconfiguration Scan on architectures/01-aws-eks-online-boutique-platform/infra/terraform/ and architectures/01-aws-eks-online-boutique-platform/k8s/
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac-config.sarif
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          trivy-config: |
+            misconfiguration:
+              include-non-failures: false
+
+      - name: Upload IaC Security SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-iac-config.sarif
+          category: trivy-iac-config

@@ -1,0 +1,168 @@
+# Gateway API Request Path:
+# client (browser) -> ALB + Gateway (HTTPS 443) -> HTTPRoute (hostname) -> Service -> Pods
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: boutique-frontend-http-redirect
+  namespace: boutique-app
+  labels:
+    app.kubernetes.io/name: boutique-frontend-http-redirect
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  parentRefs:
+    - name: app-alb-gateway
+      namespace: default
+      sectionName: http
+  hostnames:
+    - "shop.${DOMAIN_NAME}"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: platform-http-redirect
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: platform-http-redirect
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  parentRefs:
+    - name: platform-alb-gateway
+      namespace: default
+      sectionName: http-platform
+  hostnames:
+    - "argocd.${DOMAIN_NAME}"
+    - "grafana.${DOMAIN_NAME}"
+    - "kibana.${DOMAIN_NAME}"
+    - "jaeger.${DOMAIN_NAME}"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: boutique-frontend-route
+  namespace: boutique-app
+  labels:
+    app.kubernetes.io/name: boutique-frontend-route
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  parentRefs:
+    - name: app-alb-gateway
+      namespace: default
+      sectionName: https
+  hostnames:
+    - "shop.${DOMAIN_NAME}"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-server-route
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-server-route
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  parentRefs:
+    - name: platform-alb-gateway
+      namespace: default
+      sectionName: https-platform
+  hostnames:
+    - "argocd.${DOMAIN_NAME}"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: argocd-server
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana-route
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana-route
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  parentRefs:
+    - name: platform-alb-gateway
+      namespace: default
+      sectionName: https-platform
+  hostnames:
+    - "grafana.${DOMAIN_NAME}"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: grafana
+          port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kibana-route
+  namespace: logging
+  labels:
+    app.kubernetes.io/name: kibana-route
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  parentRefs:
+    - name: platform-alb-gateway
+      namespace: default
+      sectionName: https-platform
+  hostnames:
+    - "kibana.${DOMAIN_NAME}"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: boutique-kibana-kb-http
+          port: 5601
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: jaeger-route
+  namespace: tracing
+  labels:
+    app.kubernetes.io/name: jaeger-route
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  parentRefs:
+    - name: platform-alb-gateway
+      namespace: default
+      sectionName: https-platform
+  hostnames:
+    - "jaeger.${DOMAIN_NAME}"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: jaeger-collector
+          port: 16686

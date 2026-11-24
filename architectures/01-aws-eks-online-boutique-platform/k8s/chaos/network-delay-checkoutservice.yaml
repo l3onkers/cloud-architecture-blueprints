@@ -1,0 +1,37 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-checkoutservice
+  namespace: boutique-app
+  labels:
+    app.kubernetes.io/part-of: online-boutique
+    app.kubernetes.io/managed-by: hades-chaos-engine
+    chaos.gaia.io/category: network-latency
+  annotations:
+    chaos.gaia.io/hypothesis: "Injecting 150ms latency (30ms jitter) between checkoutservice and paymentservice/shippingservice verifies Jaeger OTLP :4317 trace latency detection and Prometheus Alertmanager Slack notification triggers."
+    chaos.gaia.io/abort-trigger: "Checkout P99 latency > 2000ms or HTTP 5xx error rate > 2%"
+spec:
+  action: delay
+  mode: all
+  duration: "90s"
+  selector:
+    namespaces:
+      - boutique-app
+    labelSelectors:
+      app: checkoutservice
+  direction: to
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - boutique-app
+      expressionSelectors:
+        - key: app
+          operator: In
+          values:
+            - paymentservice
+            - shippingservice
+  delay:
+    latency: "150ms"
+    correlation: "50"
+    jitter: "30ms"

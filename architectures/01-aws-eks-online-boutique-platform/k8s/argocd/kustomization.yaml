@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - namespace.yaml
+  - argocd-image-updater-config.yaml
+  - project.yaml
+  - application-platform-networking.yaml
+  - application-observability.yaml
+  - application-boutique.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: argocd
+  app.kubernetes.io/part-of: online-boutique-platform

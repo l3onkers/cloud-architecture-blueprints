@@ -1,0 +1,21 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-failure-cartservice
+  namespace: boutique-app
+  labels:
+    app.kubernetes.io/part-of: online-boutique
+    app.kubernetes.io/managed-by: hades-chaos-engine
+    chaos.gaia.io/category: state-resilience
+  annotations:
+    chaos.gaia.io/hypothesis: "Injecting pod-failure on cartservice verifies cartservice-hpa recovery and confirms stateless ElastiCache Redis persistence prevents cart data loss."
+    chaos.gaia.io/abort-trigger: "Prometheus alert CartServiceAvailabilityDrop or RedisConnectionFailure > 1%"
+spec:
+  action: pod-failure
+  mode: one
+  duration: "60s"
+  selector:
+    namespaces:
+      - boutique-app
+    labelSelectors:
+      app: cartservice

@@ -1,0 +1,189 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ebs-csi-controller-sa
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: aws-ebs-csi-driver
+    app.kubernetes.io/part-of: online-boutique-platform
+    eks.amazonaws.com/AuthType: pod-identity
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ebs-csi-node-sa
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: aws-ebs-csi-driver
+    app.kubernetes.io/part-of: online-boutique-platform
+---
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: ebs.csi.aws.com
+  labels:
+    app.kubernetes.io/name: aws-ebs-csi-driver
+spec:
+  attachRequired: true
+  podInfoOnMount: false
+  fsGroupPolicy: File
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ebs-csi-controller
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: aws-ebs-csi-driver
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ebs-csi-controller
+  template:
+    metadata:
+      labels:
+        app: ebs-csi-controller
+        app.kubernetes.io/name: aws-ebs-csi-driver
+    spec:
+      serviceAccountName: ebs-csi-controller-sa
+      priorityClassName: system-cluster-critical
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ebs-plugin
+          image: public.ecr.aws/ebs-csi-driver/aws-ebs-csi-driver:v1.33.0
+          args:
+            - controller
+            - --endpoint=$(CSI_ENDPOINT)
+            - --k8s-tag-cluster-id=terraform-cluster
+            - --logtostderr
+            - --v=2
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secret
+                  key: key_id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secret
+                  key: access_key
+                  optional: true
+          ports:
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ebs-csi-node
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: aws-ebs-csi-driver
+    app.kubernetes.io/part-of: online-boutique-platform
+spec:
+  selector:
+    matchLabels:
+      app: ebs-csi-node
+  template:
+    metadata:
+      labels:
+        app: ebs-csi-node
+        app.kubernetes.io/name: aws-ebs-csi-driver
+    spec:
+      serviceAccountName: ebs-csi-node-sa
+      priorityClassName: system-node-critical
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: ebs-plugin
+          image: public.ecr.aws/ebs-csi-driver/aws-ebs-csi-driver:v1.33.0
+          args:
+            - node
+            - --endpoint=$(CSI_ENDPOINT)
+            - --logtostderr
+            - --v=2
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:/csi/csi.sock
+          ports:
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          securityContext:
+            privileged: true
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet
+              mountPropagation: Bidirectional
+            - name: plugin-dir
+              mountPath: /csi
+            - name: device-dir
+              mountPath: /dev
+      volumes:
+        - name: kubelet-dir
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/ebs.csi.aws.com/
+            type: DirectoryOrCreate
+        - name: device-dir
+          hostPath:
+            path: /dev
+            type: Directory

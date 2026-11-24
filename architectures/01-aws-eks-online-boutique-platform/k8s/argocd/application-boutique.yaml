@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: online-boutique-app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: online-boutique-platform
+    layer: microservices
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd-image-updater.argoproj.io/image-list: >-
+      frontend=ghcr.io/${GITHUB_OWNER}/online-boutique-frontend,
+      cartservice=ghcr.io/${GITHUB_OWNER}/online-boutique-cartservice,
+      productcatalogservice=ghcr.io/${GITHUB_OWNER}/online-boutique-productcatalogservice,
+      checkoutservice=ghcr.io/${GITHUB_OWNER}/online-boutique-checkoutservice
+    argocd-image-updater.argoproj.io/frontend.update-strategy: latest
+    argocd-image-updater.argoproj.io/cartservice.update-strategy: latest
+    argocd-image-updater.argoproj.io/productcatalogservice.update-strategy: latest
+    argocd-image-updater.argoproj.io/checkoutservice.update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: online-boutique-project
+  source:
+    repoURL: https://github.com/${GITHUB_OWNER}/online-boutique-aws-platform.git
+    targetRevision: main
+    path: k8s/boutique-app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: boutique-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

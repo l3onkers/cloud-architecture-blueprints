@@ -1,0 +1,28 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: stress-cpu-hpa-validation
+  namespace: boutique-app
+  labels:
+    app.kubernetes.io/part-of: online-boutique
+    app.kubernetes.io/managed-by: hades-chaos-engine
+    chaos.gaia.io/category: autoscaling-validation
+  annotations:
+    chaos.gaia.io/hypothesis: "Applying 85% CPU stress across 2 workers on recommendationservice and frontend validates that Metrics Server, HPA, and Cluster Autoscaler (workers-autoscaler node group) scale pods and nodes automatically."
+    chaos.gaia.io/abort-trigger: "Node CPU saturation > 95% for > 3m without Cluster Autoscaler scale-out event"
+spec:
+  mode: all
+  duration: "120s"
+  selector:
+    namespaces:
+      - boutique-app
+    expressionSelectors:
+      - key: app
+        operator: In
+        values:
+          - recommendationservice
+          - frontend
+  stressors:
+    cpu:
+      workers: 2
+      load: 85

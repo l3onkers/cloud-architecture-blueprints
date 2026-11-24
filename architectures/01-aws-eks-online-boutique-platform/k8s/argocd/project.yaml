@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: online-boutique-project
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: online-boutique-platform
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Governed AppProject for Online Boutique Microservices, Platform Networking, and 3-Pillar Observability
+  sourceRepos:
+    - https://github.com/${GITHUB_OWNER}/online-boutique-aws-platform.git
+    - https://prometheus-community.github.io/helm-charts
+    - https://helm.elastic.co
+    - https://jaegertracing.github.io/helm-charts
+    - https://kubernetes-sigs.github.io/external-dns/
+  destinations:
+    - namespace: boutique-app
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: logging
+      server: https://kubernetes.default.svc
+    - namespace: tracing
+      server: https://kubernetes.default.svc
+    - namespace: external-dns
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+    - namespace: default
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    - group: gateway.networking.k8s.io
+      kind: GatewayClass
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  orphanedResources:
+    warn: true

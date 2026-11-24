@@ -1,0 +1,206 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: online-boutique-observability
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+      - name: Elasticsearch
+        type: elasticsearch
+        access: proxy
+        url: https://boutique-es-es-http.logging.svc.cluster.local:9200
+        database: "filebeat-*"
+        jsonData:
+          esVersion: "8.15.0"
+          timeField: "@timestamp"
+          tlsSkipVerify: true
+          logMessageField: message
+          logLevelField: log.level
+        editable: false
+      - name: Jaeger
+        type: jaeger
+        access: proxy
+        url: http://jaeger-collector.tracing.svc.cluster.local:16686
+        editable: false
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'online-boutique-dashboards'
+        orgId: 1
+        folder: 'Online Boutique'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+  online-boutique-golden-signals.json: |
+    {
+      "title": "Online Boutique - Golden Signals",
+      "uid": "boutique-golden-signals",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "15s",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Request Rate (RPS) by Service",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"boutique-app\"}[5m])) by (service)",
+              "legendFormat": "{{service}}"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "HTTP 5xx Error Rate (%)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "100 * sum(rate(http_requests_total{namespace=\"boutique-app\",status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total{namespace=\"boutique-app\"}[5m])) by (service)",
+              "legendFormat": "{{service}}"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "P95 Request Duration (Seconds)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"boutique-app\"}[5m])) by (le, service))",
+              "legendFormat": "{{service}}"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Pod CPU & Memory Saturation",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"boutique-app\"}[5m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        }
+      ]
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+        app.kubernetes.io/name: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.2.0
+          env:
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_SERVER_ROOT_URL
+              value: "%(protocol)s://%(domain)s/grafana/"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
+              subPath: datasources.yaml
+              readOnly: true
+            - name: dashboards-provider
+              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
+              subPath: dashboards.yaml
+              readOnly: true
+            - name: dashboards-json
+              mountPath: /var/lib/grafana/dashboards/online-boutique-golden-signals.json
+              subPath: online-boutique-golden-signals.json
+              readOnly: true
+            - name: storage
+              mountPath: /var/lib/grafana
+      volumes:
+        - name: datasources
+          configMap:
+            name: grafana-config
+        - name: dashboards-provider
+          configMap:
+            name: grafana-config
+        - name: dashboards-json
+          configMap:
+            name: grafana-config
+        - name: storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: grafana
+    app.kubernetes.io/name: grafana
+spec:
+  type: ClusterIP
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP

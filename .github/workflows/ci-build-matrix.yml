@@ -1,0 +1,160 @@
+name: CI Matrix — Detect Changes, Build, Trivy & Push to GHCR
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+jobs:
+  detect-changes:
+    name: Detect Modified Microservices
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Compute affected services
+        id: set-matrix
+        run: |
+          SERVICES=("frontend" "cartservice" "productcatalogservice" "checkoutservice")
+          CHANGED=()
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            for svc in "${SERVICES[@]}"; do
+              if git diff --name-only HEAD~1 HEAD | grep -q "^architectures/01-aws-eks-online-boutique-platform/services/${svc}/"; then
+                CHANGED+=("\"${svc}\"")
+              fi
+            done
+          fi
+          if [ ${#CHANGED[@]} -eq 0 ]; then
+            CHANGED=("\"frontend\"" "\"cartservice\"" "\"productcatalogservice\"" "\"checkoutservice\"")
+          fi
+          JSON_ARRAY="[$(IFS=,; echo "${CHANGED[*]}")]"
+          echo "matrix=${JSON_ARRAY}" >> "$GITHUB_OUTPUT"
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+  unit-tests:
+    name: Unit & Build Verification
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run pytest on Python microservices (productcatalogservice & checkoutservice)
+        run: |
+          python -m pip install --upgrade pip
+          for py_svc in productcatalogservice checkoutservice; do
+            if [ -f "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/requirements.txt" ]; then
+              pip install -r "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/requirements.txt"
+            fi
+            if [ -d "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/tests" ]; then
+              pip install pytest httpx fastapi pydantic
+              pytest "architectures/01-aws-eks-online-boutique-platform/services/${py_svc}/tests" -v
+            fi
+          done
+
+      - name: Set up .NET 8.0 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Verify .NET cartservice build & tests
+        run: |
+          if [ -d "architectures/01-aws-eks-online-boutique-platform/services/cartservice" ]; then
+            dotnet restore architectures/01-aws-eks-online-boutique-platform/services/cartservice
+            dotnet build architectures/01-aws-eks-online-boutique-platform/services/cartservice --configuration Release --no-restore
+            if ls architectures/01-aws-eks-online-boutique-platform/services/cartservice/*Tests*.csproj >/dev/null 2>&1 || ls architectures/01-aws-eks-online-boutique-platform/services/cartservice/**/*Tests*.csproj >/dev/null 2>&1; then
+              dotnet test architectures/01-aws-eks-online-boutique-platform/services/cartservice --configuration Release --no-build
+            fi
+          fi
+
+  build-trivy-push:
+    name: Build, Trivy Scan & Push (${{ matrix.service }})
+    needs: [detect-changes, unit-tests]
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build multi-stage Docker image for ${{ matrix.service }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./architectures/01-aws-eks-online-boutique-platform/services/${{ matrix.service }}
+          load: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/online-boutique-${{ matrix.service }}:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/online-boutique-${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner (Table output & blocking gate)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/online-boutique-${{ matrix.service }}:sha-${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Run Trivy vulnerability scanner (SARIF report generation)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/online-boutique-${{ matrix.service }}:sha-${{ github.sha }}
+          format: sarif
+          output: trivy-results-${{ matrix.service }}.sarif
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy SARIF report to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results-${{ matrix.service }}.sarif
+          category: trivy-${{ matrix.service }}
+
+      - name: Push verified image to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./architectures/01-aws-eks-online-boutique-platform/services/${{ matrix.service }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/online-boutique-${{ matrix.service }}:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/online-boutique-${{ matrix.service }}:latest
+          cache-from: type=gha

@@ -1,0 +1,98 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: boutique-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - boutique-net
+
+  redis-cart:
+    image: redis:7.2-alpine
+    container_name: boutique-redis-cart
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    networks:
+      - boutique-net
+
+  productcatalogservice:
+    build:
+      context: ./services/productcatalogservice
+      dockerfile: Dockerfile
+    container_name: boutique-productcatalogservice
+    environment:
+      - PORT=3550
+      - OTEL_SERVICE_NAME=productcatalogservice
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    ports:
+      - "3550:3550"
+    depends_on:
+      - jaeger
+    networks:
+      - boutique-net
+
+  cartservice:
+    build:
+      context: ./services/cartservice
+      dockerfile: Dockerfile
+    container_name: boutique-cartservice
+    environment:
+      - PORT=7070
+      - ASPNETCORE_URLS=http://+:7070
+      - REDIS_ADDR=redis-cart:6379
+      - OTEL_SERVICE_NAME=cartservice
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    ports:
+      - "7070:7070"
+    depends_on:
+      - redis-cart
+      - jaeger
+    networks:
+      - boutique-net
+
+  checkoutservice:
+    build:
+      context: ./services/checkoutservice
+      dockerfile: Dockerfile
+    container_name: boutique-checkoutservice
+    environment:
+      - PORT=5050
+      - PRODUCT_CATALOG_SERVICE_ADDR=http://productcatalogservice:3550
+      - CART_SERVICE_ADDR=http://cartservice:7070
+      - OTEL_SERVICE_NAME=checkoutservice
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    ports:
+      - "5050:5050"
+    depends_on:
+      - productcatalogservice
+      - cartservice
+      - jaeger
+    networks:
+      - boutique-net
+
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: boutique-frontend
+    environment:
+      - PORT=8080
+      - OTEL_SERVICE_NAME=frontend
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    ports:
+      - "8080:8080"
+    depends_on:
+      - productcatalogservice
+      - cartservice
+      - checkoutservice
+    networks:
+      - boutique-net
+
+networks:
+  boutique-net:
+    driver: bridge
