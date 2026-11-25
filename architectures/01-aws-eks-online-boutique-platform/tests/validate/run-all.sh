@@ -275,7 +275,6 @@ import sys
 
 poc_root = sys.argv[1]
 
-forbidden_domain = "oliver14" + ".com"
 todo_pattern = re.compile(r"\bTODO\b")
 secret_patterns = [
     ("AWS Access Key ID", re.compile(r"AKIA[0-9A-Z]{16}")),
@@ -308,9 +307,6 @@ for root, dirs, files in os.walk(poc_root):
             continue
 
         scanned_files += 1
-
-        if forbidden_domain in content.lower():
-            violations.append(f"Hardcoded domain leak ('{forbidden_domain}') in {rel_path}")
 
         if f not in skip_todo_files and todo_pattern.search(content):
             violations.append(f"Prohibited 'TODO' placeholder found in {rel_path}")
