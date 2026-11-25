@@ -9,6 +9,9 @@
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
   </a>
+  <a href="https://github.com/l3onkers/cloud-architecture-blueprints/releases/tag/v1.0.1">
+    <img src="https://img.shields.io/badge/Release-v1.0.1-brightgreen.svg" alt="Version 1.0.1">
+  </a>
   <a href="architectures/README.md">
     <img src="https://img.shields.io/badge/Architectures-Multi--Cloud%20Catalog-38bdf8" alt="Architecture Catalog">
   </a>
@@ -25,7 +28,7 @@
     <img src="https://img.shields.io/badge/Zero%20Trust-MINERVA%20Certified-22c55e" alt="Zero Trust Certified">
   </a>
   <a href="https://github.com/l3onkers/gaia-autonomous-framework">
-    <img src="https://img.shields.io/badge/Forged%20By-G.A.I.A.%20Swarm%20v1.2.0-8957e5?logo=github&logoColor=white" alt="Forged by GAIA">
+    <img src="https://img.shields.io/badge/Forged%20By-G.A.I.A.%20Swarm%20v1.2.1-8957e5?logo=github&logoColor=white" alt="Forged by GAIA">
   </a>
 </p>
 
