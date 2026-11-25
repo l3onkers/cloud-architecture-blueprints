@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2026-11-25
+
+### 🧹 Changed & Cleaned
+- **Pure Architecture Portfolio Separation (DRY):** Removed duplicated agent harness directories (`.github/skills/`, `.agents/`, `AGENTS.md`, `mcp_config.json`, `.mcp.json`, and framework banner) from this repository so `cloud-architecture-blueprints` remains 100% focused on cloud system design blueprints (`architectures/`) and reusable infrastructure templates (`templates/`).
+
+---
+
 ## [1.0.1] - 2026-11-25
 
 ### 🚀 Added

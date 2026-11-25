@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/gaia-banner.png" alt="Cloud Architecture Blueprints — Powered by G.A.I.A." width="100%">
-</p>
-
 <h1 align="center">🏛️ Cloud Architecture Blueprints</h1>
 <h3 align="center">Production-Ready Cloud Native Systems, Reference Architectures & Reusable IaC/GitOps Templates</h3>
 
@@ -9,8 +5,8 @@
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
   </a>
-  <a href="https://github.com/l3onkers/cloud-architecture-blueprints/releases/tag/v1.0.1">
-    <img src="https://img.shields.io/badge/Release-v1.0.1-brightgreen.svg" alt="Version 1.0.1">
+  <a href="https://github.com/l3onkers/cloud-architecture-blueprints/releases/tag/v1.0.2">
+    <img src="https://img.shields.io/badge/Release-v1.0.2-brightgreen.svg" alt="Version 1.0.2">
   </a>
   <a href="architectures/README.md">
     <img src="https://img.shields.io/badge/Architectures-Multi--Cloud%20Catalog-38bdf8" alt="Architecture Catalog">
@@ -25,14 +21,14 @@
     <img src="https://img.shields.io/badge/GitOps-Argo%20CD%20%2B%20Image%20Updater-EF7B4D?logo=argo&logoColor=white" alt="Argo CD">
   </a>
   <a href="architectures/01-aws-eks-online-boutique-platform/docs/SECURITY_AUDIT.md">
-    <img src="https://img.shields.io/badge/Zero%20Trust-MINERVA%20Certified-22c55e" alt="Zero Trust Certified">
+    <img src="https://img.shields.io/badge/Zero%20Trust-Security%20Audited-22c55e" alt="Zero Trust Audited">
   </a>
   <a href="https://github.com/l3onkers/gaia-autonomous-framework">
-    <img src="https://img.shields.io/badge/Forged%20By-G.A.I.A.%20Swarm%20v1.2.1-8957e5?logo=github&logoColor=white" alt="Forged by GAIA">
+    <img src="https://img.shields.io/badge/Engineered%20With-G.A.I.A.%20Framework-8957e5?logo=github&logoColor=white" alt="Engineered with GAIA">
   </a>
 </p>
 
-> **An engineering portfolio of viable, end-to-end cloud architectures, polyglot microservices, GitOps delivery pipelines, and 3-pillar observability stacks—forged and verified with the [G.A.I.A. Autonomous Framework](https://github.com/l3onkers/gaia-autonomous-framework).**
+> **An engineering portfolio of viable, end-to-end cloud architectures, polyglot microservices, GitOps delivery pipelines, and 3-pillar observability stacks.**
 
 ---
 
@@ -42,7 +38,7 @@ Most architecture repositories stop at static diagrams or isolated code snippets
 
 1. **Complete 6-Layer System Implementations (`architectures/`)**: Every flagship blueprint includes modular Terraform IaC, Kubernetes Gateway API / Service Mesh routing, polyglot compilable microservices (`.NET 8`, `Python FastAPI`, `React`), 3-pillar observability (`Prometheus/Grafana/Slack`, `ECK Filebeat/ES/Kibana`, `Jaeger OTLP :4317`), GitOps (`Argo CD` + `Image Updater`), `Chaos Mesh` resilience experiments, `k6` + `Playwright` tests, and an evidence-backed **Zero Trust Security Audit**.
 2. **Reusable System Design Templates (`templates/`)**: Clean skeletons for Architecture Decision Records (ADRs), Zero Trust checklists, Multi-AZ Terraform modules, and Kubernetes Gateway API + Argo CD manifests.
-3. **Zero-Dependency Local Simulation & Automated Verification (`Makefile` & `scripts/portfolio-cli.py`)**: Run the 6-layer validation battery or spin up an interactive local Gateway & Storefront simulator in seconds without requiring a live AWS bill.
+3. **Zero-Dependency Local Simulation & Automated Verification (`Makefile` & `scripts/portfolio-cli.py`)**: Run the 6-layer validation battery or spin up an interactive local Gateway & Storefront simulator in seconds without requiring a live cloud bill.
 
 ---
 
@@ -52,11 +48,11 @@ Every system in this portfolio is engineered and audited across six deterministi
 
 ```mermaid
 flowchart LR
-    L1["1. Cloud IaC<br/>(DEMETER)<br/>Terraform · VPC · EKS"] --> L2["2. Perimeter & Mesh<br/>(AETHER)<br/>Gateway API · ALB · DNS"]
-    L2 --> L3["3. Microservices<br/>(ELEUTHIA / POSEIDON)<br/>.NET 8 · FastAPI · React"]
-    L3 --> L4["4. Observability<br/>(APOLLO)<br/>Prometheus · ECK · Jaeger"]
-    L4 --> L5["5. CI/CD & GitOps<br/>(HEPHAESTUS)<br/>Trivy · GHCR · Argo CD"]
-    L5 --> L6["6. QA, Chaos & Audit<br/>(ARTEMIS / HADES / MINERVA)<br/>k6 · Chaos Mesh · Zero Trust"]
+    L1["1. Cloud IaC<br/>Terraform · Multi-AZ VPC<br/>Private EKS/AKS · Hybrid IAM"] --> L2["2. Perimeter & Mesh<br/>Kubernetes Gateway API<br/>Dual ALB · ExternalDNS · TLS 1.3"]
+    L2 --> L3["3. Microservices<br/>.NET 8 · FastAPI · React<br/>HPA v2 · Managed Redis/DB"]
+    L3 --> L4["4. Observability<br/>Prometheus · Grafana · Slack<br/>ECK Logging · Jaeger OTLP :4317"]
+    L4 --> L5["5. CI/CD & GitOps<br/>Monorepo Matrix · Trivy Gate<br/>GHCR · Argo CD Image Updater"]
+    L5 --> L6["6. QA, Chaos & Audit<br/>k6 Load · Playwright E2E<br/>Chaos Mesh · Zero Trust ADRs"]
 ```
 
 ---
@@ -80,7 +76,7 @@ A complete cloud-native e-commerce platform deployed in AWS (`us-east-1`) across
 | **Layer 3 (Microservices & HPA)** | [`k8s/boutique-app/`](./architectures/01-aws-eks-online-boutique-platform/k8s/boutique-app/) & [`services/`](./architectures/01-aws-eks-online-boutique-platform/services/) — All 11 Online Boutique K8s workloads + 4 `HPA` autoscalers + compilable `.NET 8` (`cartservice`), `Python FastAPI` (`productcatalogservice`, `checkoutservice`), and `React` (`frontend`). | ✅ **AST + Live E2E Verified** |
 | **Layer 4 (3-Pillar Observability)** | [`k8s/observability/`](./architectures/01-aws-eks-online-boutique-platform/k8s/observability/) — `monitoring` (`Prometheus`, `Grafana`, `Alertmanager` $\to$ `Slack`), `logging` (`ECK`, `Filebeat`, `Elasticsearch`, `Kibana`), and `tracing` (`Jaeger` OTLP gRPC `:4317`). | ✅ **28 K8s Objects Verified** |
 | **Layer 5 (CI Matrix & Argo CD)** | [`.github/workflows/`](./.github/workflows/) & [`k8s/argocd/`](./architectures/01-aws-eks-online-boutique-platform/k8s/argocd/) — Dynamic `detect-changes` $\to$ `Build` $\to$ `Trivy` $\to$ `GHCR` pipeline + `Argo CD` & `Argo CD Image Updater` sync waves. | ✅ **GitOps Ready** |
-| **Layer 6 (QA, Chaos & Zero Trust)** | [`tests/`](./architectures/01-aws-eks-online-boutique-platform/tests/), [`k8s/chaos/`](./architectures/01-aws-eks-online-boutique-platform/k8s/chaos/), [`docs/SECURITY_AUDIT.md`](./architectures/01-aws-eks-online-boutique-platform/docs/SECURITY_AUDIT.md) & [`docs/adr/`](./architectures/01-aws-eks-online-boutique-platform/docs/adr/) — `k6`, `Playwright`, `Chaos Mesh`, 3 ADRs, and MINERVA audit (`0 Critical, 0 High`). | ✅ **100% Certified** |
+| **Layer 6 (QA, Chaos & Zero Trust)** | [`tests/`](./architectures/01-aws-eks-online-boutique-platform/tests/), [`k8s/chaos/`](./architectures/01-aws-eks-online-boutique-platform/k8s/chaos/), [`docs/SECURITY_AUDIT.md`](./architectures/01-aws-eks-online-boutique-platform/docs/SECURITY_AUDIT.md) & [`docs/adr/`](./architectures/01-aws-eks-online-boutique-platform/docs/adr/) — `k6`, `Playwright`, `Chaos Mesh`, 3 ADRs, and Zero Trust audit (`0 Critical, 0 High`). | ✅ **100% Certified** |
 
 ### 2. [Blueprint 02 — Azure AKS Zero-Trust FinTech Ledger](./architectures/02-azure-aks-fintech-ledger-blueprint/README.md) *(Multi-Cloud Companion Starter)*
 Demonstrates how the 6-layer architecture translates to **Azure AKS 1.31**, **Istio Service Mesh (strict mTLS)**, **.NET 8 CQRS**, and **Azure PostgreSQL Flexible Server with Flyway migrations**.
@@ -115,9 +111,9 @@ make new-blueprint NAME=03-aws-serverless-event-mesh
 ```text
 cloud-architecture-blueprints/
 ├── README.md                                          # Portfolio master showcase & quickstart
+├── CHANGELOG.md                                       # Version history (Keep a Changelog)
 ├── Makefile                                           # Unified commands (list, validate, test-e2e, serve, new-blueprint)
-├── AGENTS.md                                          # G.A.I.A. multi-platform agent harness routing rules
-├── mcp_config.json                                    # Model Context Protocol (MCP) server configuration
+├── package.json                                       # Package manifest for GitHub Packages distribution
 ├── scripts/
 │   └── portfolio-cli.py                               # Portfolio automation & blueprint scaffolding CLI
 ├── architectures/
@@ -136,4 +132,4 @@ cloud-architecture-blueprints/
 ## 📄 License & Author
 
 - **License:** Distributed under the [MIT License](LICENSE).
-- **Author:** Designed and maintained by **[l3onkers](https://github.com/l3onkers)**, powered by the **[G.A.I.A. Autonomous Platform Engineering Framework](https://github.com/l3onkers/gaia-autonomous-framework)**.
+- **Author:** Designed and maintained by **[l3onkers](https://github.com/l3onkers)**. Engineered using the **[G.A.I.A. Autonomous Framework](https://github.com/l3onkers/gaia-autonomous-framework)**.

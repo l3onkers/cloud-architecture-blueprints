@@ -1,6 +1,6 @@
 {
   "name": "@l3onkers/cloud-architecture-blueprints",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Production-Ready Cloud Architecture Blueprints, Multi-AZ Terraform IaC, Kubernetes Gateway API, GitOps Argo CD, 3-Pillar Observability & Reusable System Design Templates (Forged with G.A.I.A.).",
   "main": "README.md",
   "scripts": {
