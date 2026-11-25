@@ -1,0 +1,36 @@
+{
+  "name": "@l3onkers/cloud-architecture-blueprints",
+  "version": "1.0.1",
+  "description": "Production-Ready Cloud Architecture Blueprints, Multi-AZ Terraform IaC, Kubernetes Gateway API, GitOps Argo CD, 3-Pillar Observability & Reusable System Design Templates (Forged with G.A.I.A.).",
+  "main": "README.md",
+  "scripts": {
+    "test": "python3 scripts/portfolio-cli.py validate",
+    "test:e2e": "python3 scripts/portfolio-cli.py test-e2e",
+    "list": "python3 scripts/portfolio-cli.py list"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/l3onkers/cloud-architecture-blueprints.git"
+  },
+  "keywords": [
+    "cloud-architecture",
+    "system-design",
+    "terraform",
+    "aws-eks",
+    "azure-aks",
+    "kubernetes-gateway-api",
+    "argocd",
+    "gitops",
+    "observability",
+    "gaia"
+  ],
+  "author": "l3onkers",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/l3onkers/cloud-architecture-blueprints/issues"
+  },
+  "homepage": "https://github.com/l3onkers/cloud-architecture-blueprints#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}
